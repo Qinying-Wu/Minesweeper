@@ -1,0 +1,23 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29519.87
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "Minesweeper 1.0", "Minesweeper 1.0.pyproj", "{E35529BC-E34C-4B5E-B16F-26682CB215BC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E35529BC-E34C-4B5E-B16F-26682CB215BC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E35529BC-E34C-4B5E-B16F-26682CB215BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {36264CD2-44BC-442B-99A5-65038CC5A636}
+	EndGlobalSection
+EndGlobal
