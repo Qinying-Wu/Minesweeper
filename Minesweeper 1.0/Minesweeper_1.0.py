@@ -6,10 +6,15 @@ import random
 import warnings
 #constants used in this project
 BLANK=0
+STR_BLANK='   '
 BOMB=-1
-MASKING=-2
+STR_BOMB=' @ '
+MASKED=-2
+STR_MASKED=' # '
 FLAG=-3
-
+STR_FLAG=' ~ '
+WRONG=-4
+STR_WRONG=' X '
 
 #function to print the intro for user input prompt
 def Intro():
@@ -20,42 +25,53 @@ def Intro():
 #functions to print the instructions for the input commands to play the game
 def PrintInstructions():
     print('COMMAND INPUT INSTRUCTIONS:')
-    print('\n (U) - Uncover a mine\n (F) - Flag a mine as a bomb\n (R) - Restart the game\n (Q) - Quit the game\n' )
+    print(' (U) - Uncover a cell')
+    print(' (F) - Flag a mine as a bomb')
+    print(' (N) - Unflag a mine')
+    print(' (S) - See the Solution (will automatically terminate the current game)')
+    print(' (R) - Restart the game')
+    print(' (Q) - Quit the game')
     print('Prompts will appear after a valid command input')
 
-#function that determines the location of a cell based on the type of information requested
-#parameter type is the position whereabout of the cell (either row or column)
-#parameter gameBoard is the current minesweeper game board
-#returns the index of the the requested type (i.e. row index or column index) beginning at 0
-def SelectCell(type,gameBoard):
-    index=0
-    print('Please indicate the %s index of the mine to uncover (indicated inside the square brackets)' %type)
-    while index==0:
-        index=input()
-        if index <1 or (type=='row' and index>len(gameBoard.shape[0])) or (type=='column' and index>len(gameBoard.shape[1])):
-            warnings.warn('Please select a valid index',Warning)
-    return index-1
+#functioN to print out the legends to explain the meaning of the board symbols
+def PrintLegends():
+    print('Legends:')
+    print(STR_MASKED,' - Covered cell')
+    print(STR_BLANK, ' - Uncovered cell')
+    print(STR_BOMB, ' - Bomb')
+    print(STR_FLAG, ' - Flag')
+    print(STR_WRONG,' - Wrongly placed flag')
+    print('Any numbers on the grid represent the mines count in the adjacent cells')
 
-#function that handles the user command inputs
-#parameter command is the command shortcut that the player has entered
-#paarameter gameBoard is the current minesweeper game board
-def CommandUserPrompts(command,gameBoard):
-    if command=='U': #uncover a mine
-        rowIndex=SelectCell('row')
-        colIndex=SelectCell('column')
-        #detect if there are any bombs surrounding the selected cell
+#function to print the game board
+#parameter gameBoard is the minesweeper's current game board
+def PrintBoard(gameBoard):
+    print('   ',end='')
+    for i in range(gameBoard.shape[1]):
+        print('[%d]'%(i+1),end='')
+    print('\n')
+    for row in range(gameBoard.shape[0]):#matrix row iteration
+        print('[%d]'%(row+1), end='')
+        for col in range(gameBoard.shape[1]):
+            if gameBoard[row,col]==MASKED: #case 1: Masked
+                print(STR_MASKED,end='')
+            elif gameBoard[row,col]==FLAG: #case 2: Flag
+                print(STR_FLAG,end='')
+            elif gameBoard[row,col]==BLANK: #case 3: Blank
+                print(STR_BLANK,end='')
+            elif gameBoard[row,col]==BOMB: #case 4: Bomb
+                print(STR_BOMB,end='')
+            elif gameBoard[row,col]==WRONG: #case 4: flagged on incorrect mine
+                print(STR_WRONG,end='')
+            else: #display the number of mines in the adjacent cells
+                print(' %d '%gameBoard[row,col],end='')
+        print('\n')
+    PrintLegends()
 
-        gameBoard[rowIndex,colIndex]
-
-#function to uncover mines based on the position of the mine selected
-#parameter rowIndex is the row index of the mine beginning at 0
-#parameter colIndex is the column index of the mine beginning at 0
-#returns true if a bomb is not yet being uncovered, else false
-def UncoverMine(rowIndex,colIndex,gameBoard):
-    #case 1: the selected mine position is a bomb ->end the game
-    if gameBoard[rowIndex,colIndex]==BOMB:
-        print('Game over')
-
+#function to print the solution of the game
+def PrintSolution(solution):
+    print('\nThis is the solution of the game: ')
+    PrintBoard(solution)
 
 #function to generate the minesweeper game board based on the difficulty level chosen
 #parameter difficulty is the level of difficulty requested by the player
@@ -73,26 +89,90 @@ def MakeGame(difficulty,rowSize,colSize,bombsCount):
             bombsCount-=1
     return solution
 
+#function that determines the location of a cell based on the type of information requested
+#parameter type is the position whereabout of the cell (either row or column)
+#parameter gameBoard is the current minesweeper game board
+#returns the index of the the requested type (i.e. row index or column index) beginning at 0
+def SelectCell(type,gameBoard):
+    index=0
+    print('Please indicate the %s index of the cell to uncover (indicated inside the square brackets)' %type)
+    while index==0:
+        index=int(input())
+        if index <1 or (type=='row' and index>gameBoard.shape[0]) or (type=='column' and index>gameBoard.shape[1]):
+            warnings.warn('Please select a valid index',Warning)
+    return index-1
 
-def DisplayBoard(gameBoard):
-    print('\n\n')
-    for row in range(gameBoard.shape[0]):#matrix row iteration
-        for col in range(gameBoard.shape[1]):
-            print('-' if gameBoard[row,col]==MASKING else str(gameBoard[row,col]),end=' ' if col<gameBoard.shape[1]-1 else '\n')
+#function to uncover cells based on the position of the cell selected
+#parameter rowIndex is the row index of the cell beginning at 0
+#parameter colIndex is the column index of the cell beginning at 0
+#parameter gameBoard is the current minesweeper game board
+#parameter solution is the initially generated minesweeper with bombs without any masking
+#returns the game board after uncovering
+def UncoverMine(rowIndex,colIndex,gameBoard,solution):
+    #case 1: bomb cell
+    if solution[rowIndex,colIndex]==BOMB:
+        gameBoard[rowIndex,colIndex]=BOMB
+    else:#not a bomb cell
+        #search the adjacent 8 cells for existence of a bomb
+        topRow=rowIndex-1 if rowIndex>0 else 0
+        bottomRow=rowIndex+2 if rowIndex<gameBoard.shape[0]-1 else gameBoard.shape[0]
+        leftCol=colIndex-1 if colIndex>0 else 0
+        rightCol=colIndex+2 if colIndex<gameBoard.shape[1]-1 else gameBoard.shape[1]
+        adj=solution[topRow:bottomRow,leftCol:rightCol].copy()
+        if BOMB in adj: #if there is a bomb in one of the adjacent cells, print the number of bombs on the board
+            gameBoard[rowIndex,colIndex]=np.count_nonzero(adj==BOMB)
+        else:#if no bombs, recursively search the adjacent cells to reveal blanks
+            gameBoard[rowIndex,colIndex]=BLANK
+            for row in range(topRow,bottomRow):
+                for col in range(leftCol,rightCol): #only uncover cells that are masked
+                    if solution[row,col]==BLANK and gameBoard[row,col]==MASKED:
+                        gameBoard=UncoverMine(row,col,gameBoard,solution)
+    return gameBoard
+
+#function to unflag a mine
+#parameter rowIndex is the row index of the mine beginning at 0
+#parameter colIndex is the column index of the mine beginning at 0
+#parameter gameBoard is the current minesweeper game board
+#returns the game board after unflagging if applicable
+def UnflagMine(rowIndex,colIndex,gameBoard):
+    if gameBoard[rowIndex,colIndex]==FLAG:
+        gameBoard[rowIndex,colIndex]=MASKED
+        print('Successfully unflagged mine at row %s, column %s' %(str(rowIndex),str(colIndex)))
+    else:
+        print('Cannot unflag a mine that is not already flagged, please only unflag flagged mines')
+    return gameBoard
+
+#function to flag a mine
+#parameter rowIndex is the row index of the mine beginning at 0
+#parameter colIndex is the column index of the mine beginning at 0
+#parameter gameBoard is the current minesweeper game board
+#returns the game board after flagging if applicable
+def FlagMine(rowIndex,colIndex,gameBoard):
+    if gameBoard[rowIndex,colIndex]==MASKED:
+        gameBoard[rowIndex,colIndex]=FLAG
+    else:
+        print('Only uncovered cells can be flagged, please try again')
+    return gameBoard
+
+
 #program entry point
 while True:
     Intro()
-    response=input()
     gameOn=False
     solution=0
+    bombsCount=0
     while not gameOn:
+        response=input()
         gameOn=True
         if response=='B':
-            solution=MakeGame(response,8,8,10)
+            bombsCount=10
+            solution=MakeGame(response,8,8,bombsCount)
         elif response=='I':
-            solution=MakeGame(response,16,16,40)
+            bombsCount=40
+            solution=MakeGame(response,16,16,bombsCount)
         elif response=='A':
-            solution=MakeGame(response,16,30,99)
+            bombsCount=99
+            solution=MakeGame(response,16,30,bombsCount)
         elif response=='C':
             print('Please indicate the number of mines in the game (a number between 1 and 200 inclusive, the floor integer will be taken if a float number is entered)')
             bombsCount=int(input())
@@ -109,11 +189,52 @@ while True:
             print('Please enter a valid option')
     if gameOn==False: #quit 
         break
-    gameBoard=np.full_like(solution.copy(),MASKING)
-    DisplayBoard(gameBoard)
-    PrintInstructions()
-    command=input()
-    #while gameOn:
-    #    if command=='E': #expose a mine
+    gameBoard=np.full_like(solution.copy(),MASKED)
+    while gameOn:
+        PrintBoard(gameBoard)
+        print('Mines left: %d\n' %bombsCount)
+        PrintInstructions()
+        command=input()
+        if command=='S':
+            PrintSolution(solution)
+            break
+        elif command=='Q': #quit game
+            gameOn=False
+            print('You have selected to quit the game, hope to see you again!')
+            break
+        elif command=='R': #restart game
+            print('Restarting the game ...')
+            gameBoard=np.full_like(solution.copy(),MASKED)
+        elif command=='U' or command=='F' or command=='N':
+            rowIndex=SelectCell('row',gameBoard)
+            colIndex=SelectCell('column',gameBoard)
+            if command=='U':
+                if gameBoard[rowIndex,colIndex]==FLAG:
+                    print('Cannot uncover a flagged mine, please unflag it first if you wish to uncover')
+                elif gameBoard[rowIndex,colIndex]==MASKED:
+                    gameBoard=UncoverMine(rowIndex,colIndex,gameBoard,solution)
+                else:
+                    print('The cell you have selected ar row %s, column %s has already been uncovered, please select an undiscovered cell' %(str(rowIndex),str(colIndex)))
 
-
+            elif command=='F':
+                tempBoard=FlagMine(rowIndex,colIndex,gameBoard)
+                if not np.array_equal(tempBoard,gameBoard):
+                    gameBoard=tempBoard
+                    bombsCount-=1
+            else:
+                tempBoard=UnflagMine(rowIndex,colIndex,gameBoard)
+                if not np.array_equal(tempBoard,gameBoard):
+                    gameBoard=tempBoard
+                    bombsCount+=1
+        else:
+            print('Please input a valid command')
+            
+        if BOMB in gameBoard: #game lost if a bomb is revealed
+            print('You\'ve hit a bomb! Game over\n')
+            PrintSolution(solution)
+            break
+        elif np.array_equal(gameBoard[gameBoard!=MASKED and gameBoard!=FLAG],solution[solution==BLANK]): #game win if all the non-bomb cells are uncovered
+            print('Congratulations on winning the game!')
+            break
+    if gameOn==False: #quit 
+        break
