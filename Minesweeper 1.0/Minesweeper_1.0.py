@@ -3,7 +3,7 @@
 #Project start date: May 5th, 2020
 import numpy as np
 import random
-import warnings
+import time
 #constants used in this project
 BLANK=0
 STR_BLANK='    '
@@ -156,6 +156,20 @@ def FlagMine(rowIndex,colIndex,gameBoard):
         print('Only uncovered cells can be flagged, please try again')
     return gameBoard
 
+#function to calculate the time used to finish the game
+#parameter sec is the total time used in seconds
+#returns the time used as a string in the format [h]hours:[m]minutes:[s]seconds
+def TimeUsed(secs):
+    minutes=int(secs/60)
+    hours=int(minutes/60)
+    seconds=secs%60
+    result='%d seconds' %seconds
+    if hours>0:
+        results='%d hours % minutes '%(hours, minutes)+result
+    else:
+        if minutes>0:
+            result='%d minutes '%minutes+result
+    return result
 
 #program entry point
 while True:
@@ -192,6 +206,7 @@ while True:
     if gameOn==False: #quit 
         break
     gameBoard=np.full_like(solution.copy(),MASKED)
+    startTime=time.time()
     while gameOn:
         PrintBoard(gameBoard)
         print('Mines left: %d\n' %bombsCount)
@@ -199,6 +214,7 @@ while True:
         command=input()
         if command=='S':
             PrintSolution(solution)
+            print('Time used: %s' %TimeUsed(time.time()-startTime))
             break
         elif command=='Q': #quit game
             gameOn=False
@@ -219,7 +235,6 @@ while True:
                     gameBoard=UncoverMine(rowIndex,colIndex,gameBoard,solution)
                 else:
                     print('The cell you have selected ar row %s, column %s has already been uncovered, please select an undiscovered cell' %(str(rowIndex),str(colIndex)))
-
             elif command=='F':
                 tempBoard=FlagMine(rowIndex,colIndex,gameBoard)
                 if not np.array_equal(tempBoard,gameBoard):
@@ -244,11 +259,13 @@ while True:
             for row,col in zip(remains[0],remains[1]):
                 gameBoard[row,col]=BOMB if solution[row,col]==BOMB else gameBoard[row,col]
             PrintSolution(gameBoard)
-            PrintSolution(solution)
+            print('Time used: %s' %TimeUsed(time.time()-startTime))
             break
         elif np.all(gameBoard[solution==BLANK]!=MASKED) and np.all(gameBoard[solution==BLANK]!=FLAG):
             #game win if all non-bomb cells are uncovered
             print('Congratulations on winning the game!\n')
+            print('Time used: %s' %TimeUsed(time.time()-startTime))
             break
+        print('Time used since last input: %s' %TimeUsed(time.time()-startTime))
     if gameOn==False: #quit 
         break
