@@ -6,15 +6,15 @@ import random
 import warnings
 #constants used in this project
 BLANK=0
-STR_BLANK='   '
+STR_BLANK='    '
 BOMB=-1
-STR_BOMB=' @ '
+STR_BOMB='  @ '
 MASKED=-2
-STR_MASKED=' # '
+STR_MASKED='  # '
 FLAG=-3
-STR_FLAG=' ~ '
+STR_FLAG='  ~ '
 WRONG=-4
-STR_WRONG=' X '
+STR_WRONG='  X '
 
 #function to print the intro for user input prompt
 def Intro():
@@ -27,9 +27,10 @@ def PrintInstructions():
     print('COMMAND INPUT INSTRUCTIONS:')
     print(' (U) - Uncover a cell')
     print(' (F) - Flag a mine as a bomb')
-    print(' (N) - Unflag a mine')
+    print(' (L) - Unflag a mine')
     print(' (S) - See the Solution (will automatically terminate the current game)')
     print(' (R) - Restart the game')
+    print(' (N) - Start a new game')
     print(' (Q) - Quit the game')
     print('Prompts will appear after a valid command input')
 
@@ -46,12 +47,12 @@ def PrintLegends():
 #function to print the game board
 #parameter gameBoard is the minesweeper's current game board
 def PrintBoard(gameBoard):
-    print('   ',end='')
+    print('    ',end='')
     for i in range(gameBoard.shape[1]):
-        print('[%d]'%(i+1),end='')
+        print('[ %d]'%(i+1) if i<9 else '[%d]'%(i+1),end='')
     print('\n')
     for row in range(gameBoard.shape[0]):#matrix row iteration
-        print('[%d]'%(row+1), end='')
+        print('[ %d]'%(row+1) if row<9 else '[%d]'%(row+1),end='')
         for col in range(gameBoard.shape[1]):
             if gameBoard[row,col]==MASKED: #case 1: Masked
                 print(STR_MASKED,end='')
@@ -64,7 +65,7 @@ def PrintBoard(gameBoard):
             elif gameBoard[row,col]==WRONG: #case 4: flagged on incorrect mine
                 print(STR_WRONG,end='')
             else: #display the number of mines in the adjacent cells
-                print(' %d '%gameBoard[row,col],end='')
+                print('  %d '%gameBoard[row,col],end='')
         print('\n')
     PrintLegends()
 
@@ -95,11 +96,12 @@ def MakeGame(difficulty,rowSize,colSize,bombsCount):
 #returns the index of the the requested type (i.e. row index or column index) beginning at 0
 def SelectCell(type,gameBoard):
     index=0
-    print('Please indicate the %s index of the cell to uncover (indicated inside the square brackets)' %type)
     while index==0:
+        print('Please indicate the %s index of the cell to uncover (indicated inside the square brackets)' %type)
         index=int(input())
         if index <1 or (type=='row' and index>gameBoard.shape[0]) or (type=='column' and index>gameBoard.shape[1]):
-            warnings.warn('Please select a valid index',Warning)
+            print('Please select a valid index within the board\'s size')
+            index=0
     return index-1
 
 #function to uncover cells based on the position of the cell selected
@@ -205,7 +207,9 @@ while True:
         elif command=='R': #restart game
             print('Restarting the game ...')
             gameBoard=np.full_like(solution.copy(),MASKED)
-        elif command=='U' or command=='F' or command=='N':
+        elif command=='N': #start a new game
+            break
+        elif command=='U' or command=='F' or command=='L':
             rowIndex=SelectCell('row',gameBoard)
             colIndex=SelectCell('column',gameBoard)
             if command=='U':
@@ -220,21 +224,31 @@ while True:
                 tempBoard=FlagMine(rowIndex,colIndex,gameBoard)
                 if not np.array_equal(tempBoard,gameBoard):
                     gameBoard=tempBoard
-                    bombsCount-=1
+                    bombsCount=bombsCount-1
             else:
                 tempBoard=UnflagMine(rowIndex,colIndex,gameBoard)
                 if not np.array_equal(tempBoard,gameBoard):
                     gameBoard=tempBoard
-                    bombsCount+=1
+                    bombsCount=bombsCount+1
         else:
             print('Please input a valid command')
             
         if BOMB in gameBoard: #game lost if a bomb is revealed
             print('You\'ve hit a bomb! Game over\n')
+            #indicate wrong flags
+            flags=np.where(gameBoard==FLAG)
+            for row,col in zip(flags[0],flags[1]):
+                gameBoard[row,col]=WRONG if solution[row,col]==BLANK else BOMB
+            #indicate remaining bombs
+            remains=np.where(solution==BOMB)
+            for row,col in zip(remains[0],remains[1]):
+                gameBoard[row,col]=BOMB if solution[row,col]==BOMB else gameBoard[row,col]
+            PrintSolution(gameBoard)
             PrintSolution(solution)
             break
-        elif np.array_equal(gameBoard[gameBoard!=MASKED and gameBoard!=FLAG],solution[solution==BLANK]): #game win if all the non-bomb cells are uncovered
-            print('Congratulations on winning the game!')
+        elif np.all(gameBoard[solution==BLANK]!=MASKED) and np.all(gameBoard[solution==BLANK]!=FLAG):
+            #game win if all non-bomb cells are uncovered
+            print('Congratulations on winning the game!\n')
             break
     if gameOn==False: #quit 
         break
