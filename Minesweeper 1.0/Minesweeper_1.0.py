@@ -232,16 +232,16 @@ while True:
                 if gameBoard[rowIndex,colIndex]==FLAG:
                     print('Cannot uncover a flagged mine, please unflag it first if you wish to uncover')
                 elif gameBoard[rowIndex,colIndex]==MASKED:
-                    gameBoard=UncoverMine(rowIndex,colIndex,gameBoard,solution)
+                    gameBoard=UncoverMine(rowIndex,colIndex,gameBoard.copy(),solution)
                 else:
                     print('The cell you have selected ar row %s, column %s has already been uncovered, please select an undiscovered cell' %(str(rowIndex),str(colIndex)))
             elif command=='F':
-                tempBoard=FlagMine(rowIndex,colIndex,gameBoard)
+                tempBoard=FlagMine(rowIndex,colIndex,gameBoard.copy())
                 if not np.array_equal(tempBoard,gameBoard):
                     gameBoard=tempBoard
                     bombsCount=bombsCount-1
             else:
-                tempBoard=UnflagMine(rowIndex,colIndex,gameBoard)
+                tempBoard=UnflagMine(rowIndex,colIndex,gameBoard.copy())
                 if not np.array_equal(tempBoard,gameBoard):
                     gameBoard=tempBoard
                     bombsCount=bombsCount+1
